@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="C:/Users/super/Documents/DBCALL/workspaceDBCALL/DefOuest/ExternJar/commons-httpclient-3.1.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/Users/super/Documents/DBCALL/workspaceDBCALL/DefOuest/ExternJar/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/super/Documents/DBCALL/workspaceDBCALL/DefOuest/ExternJar/commons-codec-1.12.jar"/>
+	<classpathentry kind="lib" path="C:/Users/super/Documents/DBCALL/workspaceDBCALL/DefOuest/ExternJar/opencsv-4.6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/super/Documents/DBCALL/workspaceDBCALL/DefOuest/ExternJar/ini4j-0.5.4-jdk14.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
