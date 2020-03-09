@@ -1,23 +1,20 @@
-package main;
-//import java.io.*;
+/*package main;
+import java.io.*;
 import java.sql.*;
-//import java.io.File;
-//import java.io.FileInputStream;
-//import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import main.IniFile;
 
-//import org.apache.commons.httpclient.HttpClient;
-//import org.apache.commons.httpclient.methods.PostMethod;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.PostMethod;
 
-//import com.opencsv.*;
+import com.opencsv.*;
 
 public class MainProtocole {
 	private static IniFile ini = new IniFile();
-	//private static String urlContrat = "";
-	//private static String filenameContrat = "";
+	private static String urlContrat = "";
+	private static String filenameContrat = "";
 	private static String requete = "";
 	//private static String urlClient = "https://api-cc.dbcall.fr/v1/defouest/client/";
 	
@@ -25,20 +22,15 @@ public class MainProtocole {
 		//connexion au serveur
 		ConnectionManager cm = new ConnectionManager();
 		Connection con = cm.getConnection();
-		//connexion au serveur dbcall
-		ConnectionManager cmDbcall = new ConnectionManager();
-		Connection conDbcall = cm.getConnection();
-		
-		//Boolean includeHeaders = true;
+		Boolean includeHeaders = true;
 		
 		// recuperation des variables dans le fichier .ini
-		//urlContrat = ini.getVariable("def","urlApi");
-		//filenameContrat = ini.getVariable("def","nom_fichier_csv"); 
-		
+		urlContrat = ini.getVariable("def","urlApi");
+		filenameContrat = ini.getVariable("def","nom_fichier_csv"); 
+		requete = ini.getVariable("base","requete");
 		
 		
 		//creation du fichier file
-		/*
 		File file = null;
 		CSVWriter writer = null;
 		try {
@@ -47,41 +39,28 @@ public class MainProtocole {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		*/
 
 		try{
 
 			// Execution de la requete
 			Statement jRequete = con.createStatement();
-			String query = ini.getVariable("base","requete");
+			String query = requete;
 			ResultSet rs = jRequete.executeQuery(query);
 			
-			//creation du json
-			JSONArray jsonArray = convert(rs);
-			
-			//insertion dans la bdd de Dbcall
-			PreparedStatement pstmt = conDbcall.prepareStatement("INSERT into public.sites(flux) values (?)");
-			pstmt.setObject(1, jsonArray);
-			pstmt.executeUpdate();
-			
 			// ecriture du fichier file
-			//writer.writeAll(rs, includeHeaders);
-			//writer.close();
+			writer.writeAll(rs, includeHeaders);
+			writer.close();
 			
 			//fermeture des connexion
 			rs.close();
 			jRequete.close();
 			con.close();
-			conDbcall.close();
 		}
 		catch(Exception e){
 			e.printStackTrace();
 		}
 
-		
-		
 		//envoie du fichier au serveur
-		/*
 		try{
 			HttpClient client = new HttpClient();
 	        PostMethod postMethod = new PostMethod(urlContrat);
@@ -100,7 +79,63 @@ public class MainProtocole {
 		catch(Exception e){
 			e.printStackTrace();
 		}
-		*/
+		
+		//FIN
+		System.out.println("Fin du traitement du protocole");
+		Thread.currentThread().interrupt();
+	}
+}*/
+
+
+package main;
+import java.sql.*;
+import main.IniFile;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class MainProtocole {
+	private static IniFile ini = new IniFile();
+	private static String requete = "";
+	
+	public static void main(String[] args) {
+		//connexion au serveur dbcall
+		ConnectionManagerDbcall cmDbcall = new ConnectionManagerDbcall();
+		Connection conDbcall = cmDbcall.getConnection();
+	
+		//connexion au serveur
+		ConnectionManager cm = new ConnectionManager();
+		Connection con = cm.getConnection();
+				
+
+		try{
+			
+			
+			// Execution de la requete
+			Statement jRequete = con.createStatement();
+			String query = ini.getVariable("base","requete");
+			ResultSet rs = jRequete.executeQuery(query);
+			
+			//creation du json
+			JSONArray jsonArray = convert(rs);
+			System.out.println(jsonArray);
+			//insertion dans la bdd de Dbcall
+			PreparedStatement pstmt = conDbcall.prepareStatement("INSERT into public.sites(flux) values (?::JSON)");
+			pstmt.setObject(1, jsonArray.toString()); // Erreur convertir un String en json sur postgresql
+			pstmt.executeUpdate();
+			
+			//fermeture des connexion
+			rs.close();
+			jRequete.close();
+			con.close();
+			conDbcall.close();
+			pstmt.close();
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+
+		
 		
 		//FIN
 		System.out.println("Fin du traitement du protocole");

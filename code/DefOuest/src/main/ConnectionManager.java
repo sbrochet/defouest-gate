@@ -20,12 +20,14 @@ public class ConnectionManager {
             	Class.forName(driverName);
             	try {
                 	con = DriverManager.getConnection(jURL, username, password);
-                	System.out.println("connexion reussi");
+                	System.out.println("connexion réussi");
             	} catch (SQLException ex) {
                 	System.out.println("Failed to create the database connection."); 
+                	System.out.println(ex.getMessage());
             	}
         	} catch (ClassNotFoundException ex) {
             	System.out.println("Driver not found.");
+            	System.out.println(ex.getMessage());
         	}
     	}
     	catch(Exception e){
