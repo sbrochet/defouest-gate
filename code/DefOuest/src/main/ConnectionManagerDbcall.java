@@ -1,21 +1,22 @@
 package main;
+
 import java.sql.*;
 import main.IniFile;
 
-public class ConnectionManager {
+public class ConnectionManagerDbcall {
 	private IniFile ini = new IniFile();
     private static String driverName = "sun.jdbc.odbc.JdbcOdbcDriver"; //nom du driver (java 1.7 UNIQUEMENT)
     private static Connection con; //connexion
-    private static String jURL = ""; //url de la base
+    private static String jURL = ""; //url de la baseDbcall
     private static String username = ""; //username
     private static String password = ""; //password
 
     public Connection getConnection() {
     	try {
     		// recuperation des variables dans le fichier .ini
-    		jURL = "jdbc:odbc:"+ini.getVariable("base","urlBase");
-			username = ini.getVariable("base","username");
-			password = ini.getVariable("base","password");
+    		jURL = "jdbc:odbc:"+ini.getVariable("baseDbcall","urlbaseDbcall");
+			username = ini.getVariable("baseDbcall","username");
+			password = ini.getVariable("baseDbcall","password");
     		try {
             	Class.forName(driverName);
             	try {
