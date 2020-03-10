@@ -96,9 +96,11 @@ import org.json.JSONObject;
 
 public class MainProtocole {
 	private static IniFile ini = new IniFile();
-	private static String requete = "";
 	
 	public static void main(String[] args) {
+		String tableName = "";
+		String primarykey = "";
+		
 		//connexion au serveur dbcall
 		ConnectionManagerDbcall cmDbcall = new ConnectionManagerDbcall();
 		Connection conDbcall = cmDbcall.getConnection();
@@ -109,27 +111,56 @@ public class MainProtocole {
 				
 
 		try{
-			
-			
 			// Execution de la requete
 			Statement jRequete = con.createStatement();
 			String query = ini.getVariable("base","requete");
 			ResultSet rs = jRequete.executeQuery(query);
 			
-			//creation du json
-			JSONArray jsonArray = convert(rs);
-			System.out.println(jsonArray);
-			//insertion dans la bdd de Dbcall
-			PreparedStatement pstmt = conDbcall.prepareStatement("INSERT into public.sites(flux) values (?::JSON)");
-			pstmt.setObject(1, jsonArray.toString()); // Erreur convertir un String en json sur postgresql
-			pstmt.executeUpdate();
+			//Recuperation de la cle primaire
+			DatabaseMetaData dbmd = con.getMetaData();
+			try (ResultSet tables = dbmd.getTables(null, null, "Contrat", new String[] { "TABLE" })) {
+			    while (tables.next()) {
+			        String catalog = tables.getString("TABLE_CAT");
+			        String schema = tables.getString("TABLE_SCHEM");
+			        String table = tables.getString("TABLE_NAME");
+			        System.out.println("Table: " + table);
+			        tableName=table;
+			        try (ResultSet primaryKeys = dbmd.getPrimaryKeys(catalog, schema, table)) {
+			            while (primaryKeys.next()) {
+			                System.out.println("Primary key: " + primaryKeys.getString("COLUMN_NAME"));
+			                primarykey = primaryKeys.getString("COLUMN_NAME");
+			            }
+			        }
+			        catch(Exception e) {
+						System.out.println("erreur : getPrimaryKeys");
+						System.out.println(e.getMessage());
+					}
+			    }
+			}
+			catch(Exception e) {
+				System.out.println("erreur : getTables");
+				System.out.println(e.getMessage());
+			}
+			
+			//Recuperation de la valeur max de la cle primaire
+			try {
+				String queryMax = "SELECT MAX("+primarykey+") as max FROM "+tableName;
+				ResultSet rsMax = jRequete.executeQuery(queryMax);
+				rsMax.next();
+				System.out.println("MAX VALUE OF : "+primarykey+" , FROM TABLE : "+tableName+" , IS : "+rsMax.getString("max"));
+			}catch(Exception e) {
+				System.out.println("erreur : SELECT MAX VALUE");
+				System.out.println(e.getMessage());
+			}
+			
+			//envoie de la requete vers dbcall
+			sendJsonToDbcall(rs,conDbcall);
 			
 			//fermeture des connexion
 			rs.close();
 			jRequete.close();
 			con.close();
 			conDbcall.close();
-			pstmt.close();
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -142,10 +173,10 @@ public class MainProtocole {
 		Thread.currentThread().interrupt();
 	}
 	
-	public static JSONArray convert( ResultSet rs )
+	//Envoie un json vers la bdd Dbcall
+	public static void sendJsonToDbcall( ResultSet rs, Connection con )
 		    throws SQLException, JSONException
 		  {
-		    JSONArray json = new JSONArray();
 		    ResultSetMetaData rsmd = rs.getMetaData();
 
 		    while(rs.next()) {
@@ -198,8 +229,13 @@ public class MainProtocole {
 		         obj.put(column_name, rs.getObject(column_name));
 		        }
 		      }
-		      json.put(obj);
+		    //insertion dans la bdd de Dbcall
+		    PreparedStatement pstmt = con.prepareStatement("INSERT into public.sites(flux) values (?::JSON)");
+			pstmt.setObject(1, obj.toString());
+			pstmt.executeUpdate();
+			//fermeture
+			pstmt.close();
 		    }
-		    return json;
 		  }
+	
 }
