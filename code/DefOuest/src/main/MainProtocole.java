@@ -1,106 +1,20 @@
-/*package main;
-import java.io.*;
-import java.sql.*;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import main.IniFile;
-
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.PostMethod;
-
-import com.opencsv.*;
-
-public class MainProtocole {
-	private static IniFile ini = new IniFile();
-	private static String urlContrat = "";
-	private static String filenameContrat = "";
-	private static String requete = "";
-	//private static String urlClient = "https://api-cc.dbcall.fr/v1/defouest/client/";
-	
-	public static void main(String[] args) {
-		//connexion au serveur
-		ConnectionManager cm = new ConnectionManager();
-		Connection con = cm.getConnection();
-		Boolean includeHeaders = true;
-		
-		// recuperation des variables dans le fichier .ini
-		urlContrat = ini.getVariable("def","urlApi");
-		filenameContrat = ini.getVariable("def","nom_fichier_csv"); 
-		requete = ini.getVariable("base","requete");
-		
-		
-		//creation du fichier file
-		File file = null;
-		CSVWriter writer = null;
-		try {
-			writer = new CSVWriter(new FileWriter(filenameContrat), '\t');
-			file = new File(filenameContrat);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-
-		try{
-
-			// Execution de la requete
-			Statement jRequete = con.createStatement();
-			String query = requete;
-			ResultSet rs = jRequete.executeQuery(query);
-			
-			// ecriture du fichier file
-			writer.writeAll(rs, includeHeaders);
-			writer.close();
-			
-			//fermeture des connexion
-			rs.close();
-			jRequete.close();
-			con.close();
-		}
-		catch(Exception e){
-			e.printStackTrace();
-		}
-
-		//envoie du fichier au serveur
-		try{
-			HttpClient client = new HttpClient();
-	        PostMethod postMethod = new PostMethod(urlContrat);
-
-	        client.setConnectionTimeout(8000);
-
-	        postMethod.setRequestBody(new FileInputStream(file));
-	        postMethod.setRequestHeader("Content-type",
-	            "text/csv; charset=ISO-8859-1");
-
-	        int statusCode1 = client.executeMethod(postMethod);
-
-	        System.out.println("statusLine>>>" + postMethod.getStatusLine());
-	        postMethod.releaseConnection();
-		}
-		catch(Exception e){
-			e.printStackTrace();
-		}
-		
-		//FIN
-		System.out.println("Fin du traitement du protocole");
-		Thread.currentThread().interrupt();
-	}
-}*/
-
-
 package main;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.*;
 import main.IniFile;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 public class MainProtocole {
 	private static IniFile ini = new IniFile();
+	private static FileWriter file;
 	
 	public static void main(String[] args) {
 		String tableName = "";
 		String primarykey = "";
-		
+		int max= 0;
+
 		//connexion au serveur dbcall
 		ConnectionManagerDbcall cmDbcall = new ConnectionManagerDbcall();
 		Connection conDbcall = cmDbcall.getConnection();
@@ -111,10 +25,8 @@ public class MainProtocole {
 				
 
 		try{
-			// Execution de la requete
+			//creation Statement
 			Statement jRequete = con.createStatement();
-			String query = ini.getVariable("base","requete");
-			ResultSet rs = jRequete.executeQuery(query);
 			
 			//Recuperation de la cle primaire
 			DatabaseMetaData dbmd = con.getMetaData();
@@ -127,8 +39,8 @@ public class MainProtocole {
 			        tableName=table;
 			        try (ResultSet primaryKeys = dbmd.getPrimaryKeys(catalog, schema, table)) {
 			            while (primaryKeys.next()) {
-			                System.out.println("Primary key: " + primaryKeys.getString("COLUMN_NAME"));
 			                primarykey = primaryKeys.getString("COLUMN_NAME");
+			                System.out.println("Primary key: " + primarykey);
 			            }
 			        }
 			        catch(Exception e) {
@@ -144,16 +56,41 @@ public class MainProtocole {
 			
 			//Recuperation de la valeur max de la cle primaire
 			try {
-				String queryMax = "SELECT MAX("+primarykey+") as max FROM "+tableName;
+				String queryMax = "SELECT MAX("+primarykey+") FROM "+tableName;
 				ResultSet rsMax = jRequete.executeQuery(queryMax);
 				rsMax.next();
-				System.out.println("MAX VALUE OF : "+primarykey+" , FROM TABLE : "+tableName+" , IS : "+rsMax.getString("max"));
+				max = Integer.parseInt(rsMax.getString("Expr1"));
+				System.out.println("MAX VALUE OF : "+primarykey+" , FROM TABLE : "+tableName+" , IS : "+max);
+				//creation du json local
+				JSONObject jsonLocal = new JSONObject();
+				jsonLocal.put("primarykey", primarykey);
+				jsonLocal.put("table", tableName);
+				jsonLocal.put("max", max);
+				//ecriture du json local dans un fichier
+				try {
+		            // Constructs a FileWriter given a file name, using the platform's default charset
+		            file = new FileWriter("./jsonLocal.json");
+		            file.write(jsonLocal.toString());
+		        } catch (IOException e) {
+		            e.printStackTrace();
+		        } finally {
+		            try {
+		                file.flush();
+		                file.close();
+		            } catch (IOException e) {
+		                e.printStackTrace();
+		            }
+		        }
+				//fermeture 
+				rsMax.close();
 			}catch(Exception e) {
 				System.out.println("erreur : SELECT MAX VALUE");
 				System.out.println(e.getMessage());
 			}
 			
-			//envoie de la requete vers dbcall
+			//execution requete et envoie vers dbcall
+			String query = ini.getVariable("base","requete");
+			ResultSet rs = jRequete.executeQuery(query);
 			sendJsonToDbcall(rs,conDbcall);
 			
 			//fermeture des connexion
@@ -161,15 +98,18 @@ public class MainProtocole {
 			jRequete.close();
 			con.close();
 			conDbcall.close();
+			
+
+			System.out.println("Fin du traitement du protocole sans erreur");
 		}
 		catch(Exception e){
+			System.out.println("erreur : fin du traitement du protocole");
 			e.printStackTrace();
 		}
 
 		
 		
 		//FIN
-		System.out.println("Fin du traitement du protocole");
 		Thread.currentThread().interrupt();
 	}
 	
