@@ -28,7 +28,7 @@ public class MainProtocole {
 			//creation Statement
 			Statement jRequete = con.createStatement();
 			
-			//Recuperation de la cle primaire
+			//Recuperation de la cle primaire de la table Contrat
 			DatabaseMetaData dbmd = con.getMetaData();
 			try (ResultSet tables = dbmd.getTables(null, null, "Contrat", new String[] { "TABLE" })) {
 			    while (tables.next()) {
@@ -54,7 +54,7 @@ public class MainProtocole {
 				System.out.println(e.getMessage());
 			}
 			
-			//Recuperation de la valeur max de la cle primaire
+			//Recuperation de la valeur max de la cle primaire de la table Contrat
 			try {
 				String queryMax = "SELECT MAX("+primarykey+") FROM "+tableName;
 				ResultSet rsMax = jRequete.executeQuery(queryMax);
@@ -88,13 +88,26 @@ public class MainProtocole {
 				System.out.println(e.getMessage());
 			}
 			
-			//execution requete et envoie vers dbcall
-			String query = ini.getVariable("base","requete");
-			ResultSet rs = jRequete.executeQuery(query);
-			sendJsonToDbcall(rs,conDbcall);
+			//execution requeteContrat et envoie vers dbcall
+			String queryContrat = ini.getVariable("base","requeteContrat");
+			ResultSet rsContrat = jRequete.executeQuery(queryContrat);
+			sendJsonToDbcall(rsContrat,conDbcall,"INSERT into public.sites(flux) values (?::JSON)");
+			
+			//execution de la requeteTechnicien et envoie vers dbcall
+			String queryTechnicien = ini.getVariable("base","requeteTechnicien");
+			ResultSet rsTech = jRequete.executeQuery(queryTechnicien);
+			sendJsonToDbcall(rsTech,conDbcall,"INSERT into public.techniciens(flux) values (?::JSON)");
+			
+			//execution de la requeteTechnicien et envoie vers dbcall
+			String queryRapport = ini.getVariable("base","requeteRapport");
+			ResultSet rsRapport = jRequete.executeQuery(queryRapport);
+			sendJsonToDbcall(rsRapport,conDbcall,"INSERT into public.rapports(flux) values (?::JSON)");
+			
 			
 			//fermeture des connexion
-			rs.close();
+			rsContrat.close();
+			rsTech.close();
+			rsRapport.close();
 			jRequete.close();
 			con.close();
 			conDbcall.close();
@@ -114,7 +127,7 @@ public class MainProtocole {
 	}
 	
 	//Envoie un json vers la bdd Dbcall
-	public static void sendJsonToDbcall( ResultSet rs, Connection con )
+	public static void sendJsonToDbcall( ResultSet rs, Connection con, String requete )
 		    throws SQLException, JSONException
 		  {
 		    ResultSetMetaData rsmd = rs.getMetaData();
@@ -170,7 +183,7 @@ public class MainProtocole {
 		        }
 		      }
 		    //insertion dans la bdd de Dbcall
-		    PreparedStatement pstmt = con.prepareStatement("INSERT into public.sites(flux) values (?::JSON)");
+		    PreparedStatement pstmt = con.prepareStatement(requete);
 			pstmt.setObject(1, obj.toString());
 			pstmt.executeUpdate();
 			//fermeture
