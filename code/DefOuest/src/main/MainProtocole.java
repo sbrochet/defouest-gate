@@ -176,7 +176,7 @@ public class MainProtocole {
 		         obj.put(column_name, rs.getDate(column_name));
 		        }
 		        else if(rsmd.getColumnType(i)==java.sql.Types.TIMESTAMP){
-		        obj.put(column_name, rs.getTimestamp(column_name));   
+		         obj.put(column_name, rs.getString(column_name));   
 		        }
 		        else{
 		         obj.put(column_name, rs.getObject(column_name));
